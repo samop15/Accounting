@@ -1,0 +1,142 @@
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import font
+from tkinter import filedialog
+from datetime import date
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from tkinter import scrolledtext
+
+# Custom color theme for an attractive and pleasing UI
+BG_COLOR = "#ECEFF4"  # Light Gray
+FG_COLOR = "#2E3440"  # Dark Gray
+ACCENT_COLOR = "#FF7200"  # Orange
+
+def calculate_summary():
+    try:
+        TS = float(total_sale_entry.get())
+        OS = float(online_sale_entry.get())
+        E = float(expenses_entry.get())
+        OB = float(opening_balance_entry.get())
+
+        # Calculate summary
+        CS = TS - OS
+        AC = CS + OB
+        CC = AC - E
+
+        external_payments = external_payments_entry.get()
+        if external_payments.lower() == "n":
+            messagebox.showinfo("AccuTrek", "Exiting the program...")
+            root.quit()
+
+        external_payments = float(external_payments)
+        OS -= external_payments
+        Final_OS = abs(OS)
+
+        summary_text = f"Accounting Summary:\n\n" \
+                       f"Total Sale: ₹{TS:.2f}\n" \
+                       f"Online Sale: ₹{Final_OS:.2f}\n" \
+                       f"Expenses: ₹{E:.2f}\n" \
+                       f"Opening Balance: ₹{OB:.2f}\n" \
+                       f"Cash Sale: ₹{CS:.2f}\n" \
+                       f"Closing Cash: ₹{CC:.2f}\n"
+
+        summary_text_area.delete("1.0", tk.END)
+        summary_text_area.insert(tk.END, summary_text)
+        save_button.config(state=tk.NORMAL)
+
+    except ValueError:
+        messagebox.showerror("AccuTrek", "Invalid input. Please enter valid numeric values.")
+
+def save_summary_to_pdf(summary_text):
+    default_filename = f"Sale_Summary_{date.today()}.pdf"
+    file_path = filedialog.asksaveasfilename(defaultextension=".pdf", initialfile=default_filename)
+    if file_path:
+        try:
+            c = canvas.Canvas(file_path, pagesize=letter)
+            c.setFont("Helvetica", 12)
+            lines = summary_text.split("\n")
+            y = 750
+            for line in lines:
+                c.drawString(50, y, line)
+                y -= 20
+            c.save()
+            messagebox.showinfo("AccuTrek", f"Summary saved successfully to:\n{file_path}")
+        except Exception as e:
+            messagebox.showerror("AccuTrek", f"Error occurred while saving the summary:\n{str(e)}")
+        finally:
+            save_button.config(state=tk.DISABLED)
+
+def save_summary_button():
+    save_summary_to_pdf(summary_text_area.get("1.0", tk.END))
+
+root = tk.Tk()
+root.title("AccuTrek")
+root.geometry("700x600")
+root.configure(bg=BG_COLOR)
+
+# Load the "Roboto" font from Google Fonts with size 10 for a modern and sleek look
+font.nametofont("TkDefaultFont").configure(family="Roboto", size=10)
+font.nametofont("TkTextFont").configure(family="Roboto", size=10)
+
+title_label = tk.Label(root, text="AccuTrek", font=("Roboto", 24), fg=FG_COLOR, bg=BG_COLOR)
+title_label.pack(pady=20)
+
+info_label = tk.Label(root, text="Welcome to AccuTrek!\n"
+                                 "To initiate the accounting process, please provide the necessary information:",
+                      font=("Roboto", 14), fg=FG_COLOR, bg=BG_COLOR)
+info_label.pack(pady=10)
+
+input_frame = tk.Frame(root, bg=BG_COLOR)
+input_frame.pack(pady=10)
+
+entry_font = ("Roboto", 10)
+label_font = ("Roboto", 10)
+
+total_sale_label = tk.Label(input_frame, text="Total Sale (₹):", font=label_font, fg=FG_COLOR, bg=BG_COLOR)
+total_sale_label.grid(row=0, column=0, padx=10, pady=5)
+total_sale_entry = tk.Entry(input_frame, font=entry_font)
+total_sale_entry.grid(row=0, column=1, pady=5)
+
+online_sale_label = tk.Label(input_frame, text="Online Sale (₹):", font=label_font, fg=FG_COLOR, bg=BG_COLOR)
+online_sale_label.grid(row=1, column=0, padx=10, pady=5)
+online_sale_entry = tk.Entry(input_frame, font=entry_font)
+online_sale_entry.grid(row=1, column=1, pady=5)
+
+expenses_label = tk.Label(input_frame, text="Expenses (₹):", font=label_font, fg=FG_COLOR, bg=BG_COLOR)
+expenses_label.grid(row=2, column=0, padx=10, pady=5)
+expenses_entry = tk.Entry(input_frame, font=entry_font)
+expenses_entry.grid(row=2, column=1, pady=5)
+
+opening_balance_label = tk.Label(input_frame, text="Opening Balance (₹):", font=label_font, fg=FG_COLOR, bg=BG_COLOR)
+opening_balance_label.grid(row=3, column=0, padx=10, pady=5)
+opening_balance_entry = tk.Entry(input_frame, font=entry_font)
+opening_balance_entry.grid(row=3, column=1, pady=5)
+
+external_payments_label = tk.Label(input_frame, text="External Online Payments (or 'N' to quit):",
+                                   font=label_font, fg=FG_COLOR, bg=BG_COLOR)
+external_payments_label.grid(row=4, column=0, padx=10, pady=5)
+external_payments_entry = tk.Entry(input_frame, font=entry_font)
+external_payments_entry.grid(row=4, column=1, pady=5)
+
+calculate_button = tk.Button(root, text="Calculate", font=("Roboto", 12, "bold"), command=calculate_summary,
+                             fg=FG_COLOR, bg=ACCENT_COLOR, relief=tk.FLAT)
+calculate_button.pack(pady=20)
+
+summary_frame = tk.Frame(root, bg=BG_COLOR)
+summary_frame.pack(pady=20)
+
+summary_label = tk.Label(summary_frame, text="Summary:", font=("Roboto", 12), fg=FG_COLOR, bg=BG_COLOR)
+summary_label.pack(pady=5)
+
+summary_text_area = scrolledtext.ScrolledText(summary_frame, width=60, height=10)
+summary_text_area.pack(pady=5)
+
+save_button = tk.Button(root, text="Save to PDF", font=("Roboto", 12, "bold"), command=save_summary_button,
+                        fg=FG_COLOR, bg=ACCENT_COLOR, relief=tk.FLAT, state=tk.DISABLED)
+save_button.pack(pady=20)
+
+made_by_label = tk.Label(root, text="Made for Gazab By Sam", font=("Roboto", 8), fg=FG_COLOR, bg=BG_COLOR)
+made_by_label.place(x=10, y=root.winfo_height() - 25, anchor="sw")
+
+root.mainloop()
